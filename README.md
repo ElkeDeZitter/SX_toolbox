@@ -1,11 +1,3 @@
-# SX_toolbox
-Tools for serial crystallography: everything you ever needed for your SX project (at the data processing level...)
-
-Facility specific scripts and tools will be available in their respective folders.
-
-If you need help on how to use these scripts and tools, please contact Elke (elke.de-zitter@ibs.fr) or Nico (nicolas.coquelle@ibs.fr).
-Have fun !
-
 <!-- TABLE OF CONTENTS -->
 <details open="open">
   <summary>Table of Contents</summary>
