@@ -53,9 +53,8 @@ Or click on "Code" -> "Download ZIP" on the top.
 ## Usage
 
 Upon running the scripts without or with "-h" will print the help message. e.g.
-U
    ```sh
-   python3 LCLS/CRYSTFEL_scripts/show_stream_stats.py
+   python3 SX_toolbox/src/crystfel/show_stream_stats.py
    ```
    
 <!-- LICENSE -->
@@ -67,7 +66,7 @@ SX_toolbox is available under the [MIT License](https://github.com/ElkeDeZitter/
 
 Elke De Zitter - elke.de-zitter@ibs.fr
 
-Nicolas Coquelle -  nicolas.coquelle@esrf.fr
+Nicolas Coquelle -  nicolas.coquelle@ibs.fr
 
 Jacques-Philippe Colletier - jacques-Philippe.colletier@ibs.fr
 
