@@ -1,5 +1,18 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
+"""
+authors and contact information
+-------
+Elke De Zitter - elke.de-zitter@ibs.fr
+Nicolas Coquelle - nicolas.coquelle@ibs.fr
+Jacques Philippe Colletier - jacques-Philippe.colletier@ibs.fr
+
+
+license information
+-------
+Copyright (c) 2022 Elke De Zitter, Nicolas Coquelle, Jacques-Philippe Collettier
+https://github.com/ElkeDeZitter/SX_toolbox/blob/main/LICENSE
+"""
+
 import os
 import sys
 import re
@@ -128,6 +141,7 @@ class Stream(object):
                     crystal.indexing = frame.indexing
 
                     #Attribute the lines of the crystal to the crystal
+                    crystal_stream.append(line)
                     crystal_stream = [line for line in crystal_stream if line != "\n"]
                     crystal.reflections = crystal_stream
                     
@@ -143,7 +157,7 @@ class Stream(object):
                 frame_stream = []
                 indexed_crystal = 0
                 if not end_chunk_line:
-                    end_chunk_line = line
+                    end_chunk_line = [line,]
 
             if append_frame == 1:
                 frame_stream.append(line)
@@ -168,9 +182,17 @@ class Stream(object):
     
     def get_index_rate(self):
         """
-        returns indexing rate = total number of images in stream / indexed images in stream
+        Returns
+        ----------
+        rate (float)
+            total number of images in stream / indexed images in stream
         """
-        return float(self.indexed_images)/self.images
+        try:
+            rate = float(self.indexed_images)/self.images
+        except ZeroDivisionError:
+            rate = 0.0
+        
+        return rate
     
     def get_indexing_per_method(self):
         """
@@ -234,7 +256,12 @@ class Stream(object):
     
     def get_score(self):
         """
-        score = indexrate/product-of-stds-on-axis
+        calculate score = indexrate/product-of-stds-on-axes
+        
+        Returns
+        ----------
+        score (float)
+            indexrate/product-of-stds-on-axes
         """
         rate = self.get_index_rate()
         
@@ -242,7 +269,74 @@ class Stream(object):
         stdev_product = aas_stdev * bbs_stdev * ccs_stdev
         
         return rate / stdev_product
-
+    
+    
+    def select_indexing_methods(self, args):
+        """
+        Select images that were indexed with one of the given methods.
+        Parameters
+        ----------
+        args (list)
+            List with indexing methods. Should be the exact indexing methods as given in the streamfile
+            
+        Example
+        ----------
+        select_indexing_methods([xgandalf-nolatt-cell, xds-latt-cell])
+            
+        """
+        self.indexing = []
+        for meth in args:
+            self.indexing += [f for f in self.frames if f.indexing == meth]
+            
+    def save_random_indexed_images(self, root, n):
+        """
+        Save random indexed images (frames), independent on the amount of crystals that are present in each frame, to
+        a new stream file.
+        
+        Parameters
+        ----------
+        root (str)
+            prefix of output stream name
+        n (int)
+            number of random frames that will be included in the output stream
+            
+        Returns
+        ----------
+        f_out (str)
+            name of the output stream file
+        """
+        
+        if not hasattr(self, 'indexing'):
+            print('Please select the different indexing methods to be saved with "select_indexing_methods"')
+            f_out = "no_file_written"
+        
+        elif n > len(self.indexing):
+            print("Number of requested output frames larger than number of indexed images. All images will be writen")
+            n = len(self.indexing)
+            f_out = '%s_%iindexed.stream'%(root,n)
+            out = open(f_out, 'w')
+            print(self.header,  file=out)
+            print('Saving %d indexed frames to %s' %(n, f_out))
+            for f in self.indexing:
+                #first merge all crystal information in a single flat list
+                refs = [r for reflections in [c.reflections for c in f.crystals] for r in reflections]
+                print(''.join(f.head+refs+self.end_chunk_line), file=out)
+            out.close()
+        
+        else:
+            total = len(self.indexing)
+            sele = random.sample(list(range(total)),n)
+            f_out = '%s_%iindexed.stream'%(root,n)
+            out = open(f_out, 'w')
+            print(self.header,  file=out)
+            print('Saving %d indexed frames to %s' %(n, f_out))
+            for i,f in enumerate(self.indexing):
+                if i in sele:
+                    #first merge all crystal information in a single flat list
+                    refs = [r for reflections in [c.reflections for c in f.crystals] for r in reflections]
+                    print(''.join(f.head+refs+self.end_chunk_line), file=out)
+            out.close()
+        return f_out
 
 class Frame():
     """
