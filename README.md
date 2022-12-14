@@ -26,9 +26,8 @@
 <!-- [![Product Name Screen Shot][product-screenshot]](https://example.com) -->
 
 Everything you ever needed for your Serial crystallography project (at the data processing level...)!
-
 If you need help on how to use these scripts and tools, please contact Elke or Nico (contact details below).
-
+Keep an eye on this repo: more functionalities are pending!
 Have fun !
 
 <!-- GETTING STARTED -->
