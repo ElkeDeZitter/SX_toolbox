@@ -72,7 +72,8 @@ class Stream(object):
                 count_shots += 1
                 append_frame = 1
                 header = 1
-                # frame_stream.append(l)
+                frame_stream = []
+                crystal_stream = []
 
             ### If
             elif 'Image filename' in line: filename = line.split()[2]
@@ -156,7 +157,11 @@ class Stream(object):
                     self.frames.append(frame)
                 frame_stream = []
                 indexed_crystal = 0
+                append_frame = 0
+                append_crystal = 0
                 if not end_chunk_line:
+                    if  "\n" in line:
+                        line = re.sub("\n", "", line)
                     end_chunk_line = [line,]
 
             if append_frame == 1:
@@ -165,8 +170,9 @@ class Stream(object):
             if append_crystal == 1:
                 crystal_stream.append(line)
 
-            if count_shots % 1000 == 0: 
-                print('%7i frames parsed, %7i indexed frames found' % (count_shots, count_images), end='\r')
+            if count_shots % 1000 == 0:
+                prog = '%7i frames parsed, %7i indexed frames found' % (count_shots, count_images)
+                print(prog, end='\r')
                 #sys.stdout.flush()
 
         self.end_chunk_line = end_chunk_line
@@ -178,6 +184,8 @@ class Stream(object):
         
         if 'Begin chunk' in self.header:
             self.header = re.sub('----- Begin chunk -----\n','',self.header) #quick and dirty removing the 'begin chunk' line that is added to the header
+            
+        print(' ' * len(prog), end='\r') #get rid of the remaining prog message
         
     
     def get_index_rate(self):
