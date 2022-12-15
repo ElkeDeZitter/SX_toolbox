@@ -136,6 +136,10 @@ class Stream(object):
             elif 'End crystal' in line:
                 if indexed_crystal == 1:
                     #not clear if this will be usefull or not
+                    #attribution of the header cannot be done yet as frame.head is not attributed yet at this stage
+                    #frame.head could also be attributed here instead of at the end of the chunk.
+                    #Since head can be long, better not to attribute crystal.head yet until required
+                    #Then it can be done with the function copy_frame_head_to_crystal below
                     crystal.filename = frame.filename
                     crystal.event = frame.event
                     crystal.timeline = frame.timeline
@@ -321,7 +325,7 @@ class Stream(object):
         elif n > len(self.indexing):
             print("Number of requested output frames larger than number of indexed images. All images will be writen")
             n = len(self.indexing)
-            f_out = '%s_%iindexed.stream'%(root,n)
+            f_out = '%s_%iindexed_images.stream'%(root,n)
             out = open(f_out, 'w')
             print(self.header,  file=out)
             print('Saving %d indexed frames to %s' %(n, f_out))
@@ -334,7 +338,7 @@ class Stream(object):
         else:
             total = len(self.indexing)
             sele = random.sample(list(range(total)),n)
-            f_out = '%s_%iindexed.stream'%(root,n)
+            f_out = '%s_%iindexed_images.stream'%(root,n)
             out = open(f_out, 'w')
             print(self.header,  file=out)
             print('Saving %d indexed frames to %s' %(n, f_out))
@@ -344,7 +348,140 @@ class Stream(object):
                     refs = [r for reflections in [c.reflections for c in f.crystals] for r in reflections]
                     print(''.join(f.head+refs+self.end_chunk_line), file=out)
             out.close()
+            
         return f_out
+    
+    def copy_frame_head_to_crystal(self, frames=True, indexing=False):
+        """
+        copy frame.head to crystal.head if the latter has not been defined yet.
+        Parameters
+        ----------
+        frames (bool)
+            copy the header of all indexed frames.
+        indexing (bool)
+            copy the header of all selected frames with select_indexing_methods
+
+        Returns
+        ----------
+        No return unless the crystal.head has already been defined, or
+            indexing=True is selected while select_indexing_methods is not run yet
+        """
+        if S.frames[0].crystals[0].head:
+            return
+        
+        if frames:
+            for frame in self.frames:
+                for crystal in frame.crystals:
+                    if not crystal.head:
+                        crystal.head = frame.head
+        elif indexing:
+            if not hasattr(self, 'indexing'):
+                print('Please select the different indexing methods to be saved with "select_indexing_methods"')
+                return
+            else:
+                for frame in self.indexing:
+                    for crystal in frame.crystals:
+                        if not crystal.head:
+                            crystal.head = frame.head
+        else:
+            print("Please specify if you want to carry out the operation on all indexed frames (frames=True, indexing=False)
+            or all frames with selected indexing method (frames=False, indexing=True)")
+                
+
+    
+    def detach_crystals_from_frames(self, frames=True, indexing=False):
+        """"
+        Store individual crystals as a direct attribute of the class, so detached from the frame.
+        Will treat individual crystals from the same frame as independent.
+        
+        Parameters
+        ----------
+        frames (bool)
+            split all indexed frames.
+        indexing (bool)
+            split all selected frames with select_indexing_methods
+
+        Returns
+        ----------
+        No return unless the crystals are already detached, or 
+            crystal.head is not defined yet (copy_frame_head_to_crystal not run), or
+            indexing=True is selected while select_indexing_methods is not run yet
+        """
+        if hasattr(self, "crystals"):
+            return
+        
+        if not S.frames[0].crystals[0].head:
+            print('Please copy frame head to crystal head first with "copy_frame_head_to_crystal"')
+            return
+        
+        if frames:
+            self.crystals = []
+            self.crystals += [crystal for frame in self.frames for crystal in frame.crystals]
+        
+        elif indexing:
+            if not hasattr(self, 'indexing'):
+                print('Please select the different indexing methods to be saved with "select_indexing_methods"')
+                return
+            else:
+                self.crystals = []
+                self.crystals += [crystal for frame in self.indexing for crystal in frame.crystals]
+        else:
+            print("Please specify if you want to carry out the operation on all indexed frames (frames=True, indexing=False)
+            or all frames with selected indexing method (frames=False, indexing=True)")
+            
+                                
+    def save_random_indexed_crystals(self, root, n):
+        """
+        save random indexed crystals, independent of whether crystals are originate from the same frame, to
+        a new stream file.
+        
+        Parameters
+        ----------
+        root (str)
+            prefix of output stream name
+        n (int)
+            number of random crystals that will be included in the output stream
+            
+        Returns
+        ----------
+        f_out (str)
+            name of the output stream file
+        """
+        
+        if not hasattr(self, 'indexing'):
+            print('Please select the different indexing methods to be saved with "select_indexing_methods"')
+            f_out = "no_file_written"
+            
+        if not hasattr(self, "crystals"):
+            print('Please detach the crystals from the frames first with "detach_crystals_from_frames"')
+            f_out = "no_file_written"
+        
+        elif n > len(self.crystals):
+            print("Number of requested output frames larger than number of indexed images. All images will be writen")
+            n = len(self.crystals)
+            f_out = '%s_%iindexed_crystals.stream'%(root,n)
+            out = open(f_out, 'w')
+            print(self.header,  file=out)
+            print('Saving %d indexed frames to %s' %(n, f_out))
+            for c in self.crystals:
+                print(''.join(c.head+c.reflections+self.end_chunk_line), file=out)
+            out.close()
+        
+        else:
+            total = len(self.crystals)
+            sele = random.sample(list(range(total)),n)
+            f_out = '%s_%iindexed_crystals.stream'%(root,n)
+            out = open(f_out, 'w')
+            print(self.header,  file=out)
+            print('Saving %d indexed frames to %s' %(n, f_out))
+            for i,c in enumerate(self.crystals):
+                if i in sele:
+                    print(''.join(c.head+c.reflections+self.end_chunk_line), file=out)
+            out.close()
+            
+        return f_out
+
+
 
 class Frame():
     """
@@ -366,7 +503,7 @@ class Frame():
         self.event = ''
         self.timeline = 0
         self.indexing = ''
-        self.head = ['']
+        self.head = []
         self.crystals = []
         
 class Crystal(Frame):

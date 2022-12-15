@@ -14,20 +14,20 @@ license information
 Copyright (c) 2022 Elke De Zitter, Nicolas Coquelle, Jacques-Philippe Collettier
 https://github.com/ElkeDeZitter/SX_toolbox/blob/main/LICENSE
 
-save_random_indexed_images
+save_random_indexed_crystals
 -------
 Script to select a random number of indexed images to a new stream file.
 It will look into indexed images, independent of the number of indeexed crystals.
 If you want to save a number of random indexed crystals, then use the 
-save_random_indexed_crystals.py script
+save_random_indexed_crystals.py script (stil needs to be written)
 
 Usage and example
 -------
 To get the help message:
-python save_random_indexed_images.py -h
+python save_random_indexed_crystals.py -h
 
 To save 50 random images to a streamfile called my_output_50indexed.stream:
-python save_random_indexed_images.py -i my_input.stream -o my_output -n 50
+python save_random_indexed_crystals.py -i my_input.stream -o my_output -n 50
 
 """
 import os
@@ -40,8 +40,10 @@ def select_indexed_images(stream_file, output_prefix, number):
 
     S = stream.Stream(stream_file)
     print("----> %s <---- " %(stream_file))
+    S.copy_frame_head_to_crystal(frames=True)
+    S.detach_crystals_from_frames(frames=True)
     S.select_indexing_methods(S.indexing_methods)
-    _ = S.save_random_indexed_images(output_prefix, number)
+    _ = S.save_random_indexed_crystals(output_prefix, number)
     print("------------------")
     
 def get_filename(fle, suffix):
@@ -59,7 +61,7 @@ if __name__ == '__main__':
 
     parser.add_argument('-i', '--stream_file', type=str, default='input.stream',help='Input stream file.')
     parser.add_argument('-o', '--output_prefix', type=str, default = None, help='Name prefix for the output stream file. The number of selected images will be mentioned in the output stream file anyway. If not provided, the prefix of the input file will be taken.')
-    parser.add_argument('-n', '--number', type=int, default=0, help='Number of random images to be selected')
+    parser.add_argument('-n', '--number', type=int, default=0, help='Number of random crystals to be selected')
     
     args = parser.parse_args()
     
