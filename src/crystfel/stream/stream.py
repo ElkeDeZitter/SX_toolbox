@@ -300,7 +300,7 @@ class Stream(object):
         for meth in args:
             self.indexing += [f for f in self.frames if f.indexing == meth]
             
-    def save_random_indexed_images(self, root, n):
+    def save_random_indexed_images(self, root, n, frames=False, indexing=False):
         """
         Save random indexed images (frames), independent on the amount of crystals that are present in each frame, to
         a new stream file.
@@ -311,38 +311,53 @@ class Stream(object):
             prefix of output stream name
         n (int)
             number of random frames that will be included in the output stream
+        frames (bool)
+            use all indexed frames
+        indexing (bool)
+            use only selected frames with select_indexing_methods
             
         Returns
         ----------
         f_out (str)
-            name of the output stream file
+            name of the output stream file, or
+            "no_file_written" in case the prerequisites are not met
         """
-        
-        if not hasattr(self, 'indexing'):
-            print('Please select the different indexing methods to be saved with "select_indexing_methods"')
+        if frames:
+            frames = self.frames
+        elif indexing:
+            if not hasattr(self, 'indexing'):
+                print('Please select the different indexing methods to be saved with "select_indexing_methods"')
+                f_out = "no_file_written"
+                return f_out
+            else:
+                frames = self.indexing
+        else:
+            print("Please specify if you want to carry out the operation on all indexed frames (frames=True, indexing=False)")
+            print("or all frames with selected indexing method (frames=False, indexing=True)")
             f_out = "no_file_written"
-        
-        elif n > len(self.indexing):
+            return f_out
+            
+        if n > len(frames):
             print("Number of requested output frames larger than number of indexed images. All images will be writen")
-            n = len(self.indexing)
+            n = len(frames)
             f_out = '%s_%iindexed_images.stream'%(root,n)
             out = open(f_out, 'w')
             print(self.header,  file=out)
             print('Saving %d indexed frames to %s' %(n, f_out))
-            for f in self.indexing:
+            for f in frames:
                 #first merge all crystal information in a single flat list
                 refs = [r for reflections in [c.reflections for c in f.crystals] for r in reflections]
                 print(''.join(f.head+refs+self.end_chunk_line), file=out)
             out.close()
         
         else:
-            total = len(self.indexing)
+            total = len(frames)
             sele = random.sample(list(range(total)),n)
             f_out = '%s_%iindexed_images.stream'%(root,n)
             out = open(f_out, 'w')
             print(self.header,  file=out)
             print('Saving %d indexed frames to %s' %(n, f_out))
-            for i,f in enumerate(self.indexing):
+            for i,f in enumerate(frames):
                 if i in sele:
                     #first merge all crystal information in a single flat list
                     refs = [r for reflections in [c.reflections for c in f.crystals] for r in reflections]
@@ -351,7 +366,7 @@ class Stream(object):
             
         return f_out
     
-    def copy_frame_head_to_crystal(self, frames=True, indexing=False):
+    def copy_frame_head_to_crystal(self, frames=False, indexing=False):
         """
         copy frame.head to crystal.head if the latter has not been defined yet.
         Parameters
@@ -366,7 +381,7 @@ class Stream(object):
         No return unless the crystal.head has already been defined, or
             indexing=True is selected while select_indexing_methods is not run yet
         """
-        if S.frames[0].crystals[0].head:
+        if self.frames[0].crystals[0].head:
             return
         
         if frames:
@@ -384,12 +399,12 @@ class Stream(object):
                         if not crystal.head:
                             crystal.head = frame.head
         else:
-            print("Please specify if you want to carry out the operation on all indexed frames (frames=True, indexing=False)
-            or all frames with selected indexing method (frames=False, indexing=True)")
+            print("Please specify if you want to carry out the operation on all indexed frames (frames=True, indexing=False)")
+            print("or all frames with selected indexing method (frames=False, indexing=True)")
                 
 
     
-    def detach_crystals_from_frames(self, frames=True, indexing=False):
+    def detach_crystals_from_frames(self, frames=False, indexing=False):
         """"
         Store individual crystals as a direct attribute of the class, so detached from the frame.
         Will treat individual crystals from the same frame as independent.
@@ -410,7 +425,7 @@ class Stream(object):
         if hasattr(self, "crystals"):
             return
         
-        if not S.frames[0].crystals[0].head:
+        if not self.frames[0].crystals[0].head:
             print('Please copy frame head to crystal head first with "copy_frame_head_to_crystal"')
             return
         
@@ -426,8 +441,8 @@ class Stream(object):
                 self.crystals = []
                 self.crystals += [crystal for frame in self.indexing for crystal in frame.crystals]
         else:
-            print("Please specify if you want to carry out the operation on all indexed frames (frames=True, indexing=False)
-            or all frames with selected indexing method (frames=False, indexing=True)")
+            print("Please specify if you want to carry out the operation on all indexed frames (frames=True, indexing=False)")
+            print("or all frames with selected indexing method (frames=False, indexing=True)")
             
                                 
     def save_random_indexed_crystals(self, root, n):
@@ -445,18 +460,15 @@ class Stream(object):
         Returns
         ----------
         f_out (str)
-            name of the output stream file
+            name of the output stream file, or
+            "no_file_written" if prerequisites not met
         """
-        
-        if not hasattr(self, 'indexing'):
-            print('Please select the different indexing methods to be saved with "select_indexing_methods"')
-            f_out = "no_file_written"
-            
         if not hasattr(self, "crystals"):
             print('Please detach the crystals from the frames first with "detach_crystals_from_frames"')
             f_out = "no_file_written"
+            return f_out
         
-        elif n > len(self.crystals):
+        if n > len(self.crystals):
             print("Number of requested output frames larger than number of indexed images. All images will be writen")
             n = len(self.crystals)
             f_out = '%s_%iindexed_crystals.stream'%(root,n)

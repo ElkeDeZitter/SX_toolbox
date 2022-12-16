@@ -36,14 +36,33 @@ import re
 import argparse
 from stream import stream
 
-def select_indexed_images(stream_file, output_prefix, number):
+def select_indexed_images(stream_file, output_prefix, number, indexing_methods=[]):
 
     S = stream.Stream(stream_file)
     print("----> %s <---- " %(stream_file))
-    S.copy_frame_head_to_crystal(frames=True)
-    S.detach_crystals_from_frames(frames=True)
-    S.select_indexing_methods(S.indexing_methods)
-    _ = S.save_random_indexed_crystals(output_prefix, number)
+    if indexing_methods:
+        final_methods = []
+        for m in indexing_methods:
+            if m in S.indexing_methods:
+                final_methods.append(m)
+            else:
+                print("Requested indexing method '{:s}' not found. Possible indexing methods are:".format(m))
+                print("\n".join(S.indexing_methods))
+                print("----")
+        print("Requested indexing methods found:")
+        print("\n".join(final_methods))
+        print("----")
+        if final_methods:
+            S.select_indexing_methods(final_methods)
+            S.copy_frame_head_to_crystal(frames=False, indexing=True)
+            S.detach_crystals_from_frames(frames=False, indexing=True)
+            _ = S.save_random_indexed_crystals(output_prefix, number)
+        else:
+            print("Sorry, cannot proceed")
+    else:
+        S.copy_frame_head_to_crystal(frames=True, indexing=False)
+        S.detach_crystals_from_frames(frames=True, indexing=False)
+        _ = S.save_random_indexed_crystals(output_prefix, number)
     print("------------------")
     
 def get_filename(fle, suffix):
@@ -60,8 +79,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-i', '--stream_file', type=str, default='input.stream',help='Input stream file.')
-    parser.add_argument('-o', '--output_prefix', type=str, default = None, help='Name prefix for the output stream file. The number of selected images will be mentioned in the output stream file anyway. If not provided, the prefix of the input file will be taken.')
+    parser.add_argument('-o', '--output_prefix', type=str, default = None, help='Name prefix for the output stream file. The number of selected crystals will be mentioned in the output stream file anyway. If not provided, the prefix of the input file will be taken.')
     parser.add_argument('-n', '--number', type=int, default=0, help='Number of random crystals to be selected')
+    parser.add_argument('-m', '--method', type=str, action="append", help='Indexing method, should be literal method names as used within the stream file, e.g. "xgandalf-nolatt-cell". This argument can be repeated to include multiple methods. All indexing methods will be used if this argument is not used.')
     
     args = parser.parse_args()
     
@@ -86,4 +106,4 @@ if __name__ == '__main__':
     if output_prefix == None:
         output_prefix = get_filename(stream_file, 'stream')
     
-    select_indexed_images(stream_file, output_prefix, number)
+    select_indexed_images(stream_file, output_prefix, number, indexing_methods=args.method)
